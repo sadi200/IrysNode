@@ -1,0 +1,19 @@
+{
+  "name": "telegrambot",
+  "version": "1.0.0",
+  "main": "bot.js",
+  "scripts": {
+    "start": "node --watch telegramNumberBot.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "dependencies": {
+    "express": "^5.1.0",
+    "fs-extra": "^11.3.2",
+    "node-telegram-bot-api": "^0.66.0",
+    "puppeteer": "^24.23.0",
+    "telegraf": "^4.16.3"
+  }
+}
