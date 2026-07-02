@@ -14,62 +14,28 @@ from phonenumbers import geocoder, carrier
 import os
 import subprocess
 from datetime import datetime
-import json
-from flask import Flask, request
-import logging
-from werkzeug.serving import make_server
 
 # ================ Telegram Config ================
-TELEGRAM_BOT_TOKEN = "5166999201:AAHj6OhVNN5kDlqLWaYXGhw"
-TELEGRAM_CHAT_ID = "-10075120"
+TELEGRAM_BOT_TOKEN = "5166999201:AAHj51-M28JBWVN6OhVNN5kDlqLWaYXGhw"
+TELEGRAM_CHAT_ID = "-10042425120"
 CHECK_INTERVAL = 1
 
 # ================ URL Configuration ================
-TARGET_URL = "http://54.37.83.141/ints/login"
+TARGET_URL = "https://www.ivasms.com/portal/live/my_sms"
 
 # ================ All Countries with Flags ================
 COUNTRIES = {
-    'AFGHANISTAN': '🇦🇫', 'ALBANIA': '🇦🇱', 'ALGERIA': '🇩🇿', 'ANDORRA': '🇦🇩', 'ANGOLA': '🇦🇴',
-    'ARGENTINA': '🇦🇷', 'ARMENIA': '🇦🇲', 'AUSTRALIA': '🇦🇺', 'AUSTRIA': '🇦🇹', 'AZERBAIJAN': '🇦🇿',
-    'BAHAMAS': '🇧🇸', 'BAHRAIN': '🇧🇭', 'BANGLADESH': '🇧🇩', 'BARBADOS': '🇧🇧', 'BELARUS': '🇧🇾',
-    'BELGIUM': '🇧🇪', 'BELIZE': '🇧🇿', 'BENIN': '🇧🇯', 'BHUTAN': '🇧🇹', 'BOLIVIA': '🇧🇴',
-    'BOSNIA': '🇧🇦', 'BOTSWANA': '🇧🇼', 'BRAZIL': '🇧🇷', 'BRUNEI': '🇧🇳', 'BULGARIA': '🇧🇬',
-    'BURKINA': '🇧🇫', 'BURUNDI': '🇧🇮', 'CAMBODIA': '🇰🇭', 'CAMEROON': '🇨🇲', 'CANADA': '🇨🇦',
-    'CAPE VERDE': '🇨🇻', 'CHAD': '🇹🇩', 'CHILE': '🇨🇱', 'CHINA': '🇨🇳', 'COLOMBIA': '🇨🇴',
-    'COMOROS': '🇰🇲', 'CONGO': '🇨🇩', 'COSTA RICA': '🇨🇷', 'CROATIA': '🇭🇷', 'CUBA': '🇨🇺',
-    'CYPRUS': '🇨🇾', 'CZECHIA': '🇨🇿', 'DENMARK': '🇩🇰', 'DJIBOUTI': '🇩🇯', 'DOMINICA': '🇩🇲',
-    'DOMINICAN REPUBLIC': '🇩🇴', 'ECUADOR': '🇪🇨', 'EGYPT': '🇪🇬', 'EL SALVADOR': '🇸🇻',
-    'EQUATORIAL GUINEA': '🇬🇶', 'ERITREA': '🇪🇷', 'ESTONIA': '🇪🇪', 'ESWATINI': '🇸🇿',
-    'ETHIOPIA': '🇪🇹', 'FIJI': '🇫🇯', 'FINLAND': '🇫🇮', 'FRANCE': '🇫🇷', 'GABON': '🇬🇦',
-    'GAMBIA': '🇬🇲', 'GEORGIA': '🇬🇪', 'GERMANY': '🇩🇪', 'GHANA': '🇬🇭', 'GREECE': '🇬🇷',
-    'GRENADA': '🇬🇩', 'GUATEMALA': '🇬🇹', 'GUINEA': '🇬🇳', 'GUYANA': '🇬🇾', 'HAITI': '🇭🇹',
-    'HONDURAS': '🇭🇳', 'HUNGARY': '🇭🇺', 'ICELAND': '🇮🇸', 'INDIA': '🇮🇳', 'INDONESIA': '🇮🇩',
-    'IRAN': '🇮🇷', 'IRAQ': '🇮🇶', 'IRELAND': '🇮🇪', 'ISRAEL': '🇮🇱', 'ITALY': '🇮🇹',
-    'IVORY COAST': '🇨🇮', 'JAMAICA': '🇯🇲', 'JAPAN': '🇯🇵', 'JORDAN': '🇯🇴', 'KAZAKHSTAN': '🇰🇿',
-    'KENYA': '🇰🇪', 'KIRIBATI': '🇰🇮', 'KOREA': '🇰🇷', 'KUWAIT': '🇰🇼', 'KYRGYZSTAN': '🇰🇬',
-    'LAOS': '🇱🇦', 'LATVIA': '🇱🇻', 'LEBANON': '🇱🇧', 'LESOTHO': '🇱🇸', 'LIBERIA': '🇱🇷',
-    'LIBYA': '🇱🇾', 'LIECHTENSTEIN': '🇱🇮', 'LITHUANIA': '🇱🇹', 'LUXEMBOURG': '🇱🇺',
-    'MADAGASCAR': '🇲🇬', 'MALAWI': '🇲🇼', 'MALAYSIA': '🇲🇾', 'MALDIVES': '🇲🇻', 'MALI': '🇲🇱',
-    'MALTA': '🇲🇹', 'MARSHALL ISLANDS': '🇲🇭', 'MAURITANIA': '🇲🇷', 'MAURITIUS': '🇲🇺',
-    'MEXICO': '🇲🇽', 'MICRONESIA': '🇫🇲', 'MOLDOVA': '🇲🇩', 'MONACO': '🇲🇨', 'MONGOLIA': '🇲🇳',
-    'MONTENEGRO': '🇲🇪', 'MOROCCO': '🇲🇦', 'MOZAMBIQUE': '🇲🇿', 'MYANMAR': '🇲🇲',
-    'NAMIBIA': '🇳🇦', 'NAURU': '🇳🇷', 'NEPAL': '🇳🇵', 'NETHERLANDS': '🇳🇱', 'NEW ZEALAND': '🇳🇿',
-    'NICARAGUA': '🇳🇮', 'NIGER': '🇳🇪', 'NIGERIA': '🇳🇬', 'NORTH MACEDONIA': '🇲🇰',
-    'NORWAY': '🇳🇴', 'OMAN': '🇴🇲', 'PAKISTAN': '🇵🇰', 'PALAU': '🇵🇼', 'PANAMA': '🇵🇦',
-    'PAPUA NEW GUINEA': '🇵🇬', 'PARAGUAY': '🇵🇾', 'PERU': '🇵🇪', 'PHILIPPINES': '🇵🇭',
-    'POLAND': '🇵🇱', 'PORTUGAL': '🇵🇹', 'QATAR': '🇶🇦', 'ROMANIA': '🇷🇴', 'RUSSIA': '🇷🇺',
-    'RWANDA': '🇷🇼', 'SAINT LUCIA': '🇱🇨', 'SAMOA': '🇼🇸', 'SAN MARINO': '🇸🇲',
-    'SAUDI ARABIA': '🇸🇦', 'SENEGAL': '🇸🇳', 'SERBIA': '🇷🇸', 'SEYCHELLES': '🇸🇨',
-    'SIERRA LEONE': '🇸🇱', 'SINGAPORE': '🇸🇬', 'SLOVAKIA': '🇸🇰', 'SLOVENIA': '🇸🇮',
-    'SOLOMON ISLANDS': '🇸🇧', 'SOMALIA': '🇸🇴', 'SOUTH AFRICA': '🇿🇦', 'SOUTH SUDAN': '🇸🇸',
-    'SPAIN': '🇪🇸', 'SRI LANKA': '🇱🇰', 'SUDAN': '🇸🇩', 'SURINAME': '🇸🇷', 'SWEDEN': '🇸🇪',
-    'SWITZERLAND': '🇨🇭', 'SYRIA': '🇸🇾', 'TAIWAN': '🇹🇼', 'TAJIKISTAN': '🇹🇯',
-    'TANZANIA': '🇹🇿', 'THAILAND': '🇹🇭', 'TOGO': '🇹🇬', 'TONGA': '🇹🇴',
-    'TRINIDAD AND TOBAGO': '🇹🇹', 'TUNISIA': '🇹🇳', 'TURKEY': '🇹🇷', 'TURKMENISTAN': '🇹🇲',
-    'TUVALU': '🇹🇻', 'UGANDA': '🇺🇬', 'UKRAINE': '🇺🇦', 'UNITED ARAB EMIRATES': '🇦🇪',
-    'UNITED KINGDOM': '🇬🇧', 'UNITED STATES': '🇺🇸', 'URUGUAY': '🇺🇾', 'UZBEKISTAN': '🇺🇿',
-    'VANUATU': '🇻🇺', 'VATICAN CITY': '🇻🇦', 'VENEZUELA': '🇻🇪', 'VIETNAM': '🇻🇳',
-    'YEMEN': '🇾🇪', 'ZAMBIA': '🇿🇲', 'ZIMBABWE': '🇿🇼'
+    'TANZANIA': '🇹🇿', 'BANGLADESH': '🇧🇩', 'INDIA': '🇮🇳', 'PAKISTAN': '🇵🇰',
+    'NIGERIA': '🇳🇬', 'GHANA': '🇬🇭', 'KENYA': '🇰🇪', 'UGANDA': '🇺🇬',
+    'SOUTH AFRICA': '🇿🇦', 'EGYPT': '🇪🇬', 'ZAMBIA': '🇿🇲', 'BENIN': '🇧🇯',
+    'PHILIPPINES': '🇵🇭', 'CAMBODIA': '🇰🇭', 'VIETNAM': '🇻🇳', 'INDONESIA': '🇮🇩',
+    'MALAYSIA': '🇲🇾', 'SINGAPORE': '🇸🇬', 'TAIWAN': '🇹🇼', 'CHINA': '🇨🇳',
+    'JAPAN': '🇯🇵', 'KOREA': '🇰🇷', 'USA': '🇺🇸', 'UK': '🇬🇧',
+    'CANADA': '🇨🇦', 'AUSTRALIA': '🇦🇺', 'NEW ZEALAND': '🇳🇿', 'FRANCE': '🇫🇷',
+    'GERMANY': '🇩🇪', 'ITALY': '🇮🇹', 'SPAIN': '🇪🇸', 'PORTUGAL': '🇵🇹',
+    'NETHERLANDS': '🇳🇱', 'BELGIUM': '🇧🇪', 'SWITZERLAND': '🇨🇭', 'AUSTRIA': '🇦🇹',
+    'SWEDEN': '🇸🇪', 'NORWAY': '🇳🇴', 'DENMARK': '🇩🇰', 'FINLAND': '🇫🇮',
+    'RUSSIA': '🇷🇺', 'UKRAINE': '🇺🇦', 'POLAND': '🇵🇱', 'TURKEY': '🇹🇷'
 }
 
 # ================ Service Emojis ================
@@ -88,11 +54,6 @@ BASE_DIR = os.path.expanduser('~/sadi/IrysNode')
 SMS_FILE = os.path.join(BASE_DIR, 'all_sms_data.txt')
 os.makedirs(BASE_DIR, exist_ok=True)
 
-# ================ Flask App for Telegram Webhook ================
-app = Flask(__name__)
-log = logging.getLogger('werkzeug')
-log.setLevel(logging.ERROR)
-
 # ================ Helpers ================
 def get_flag(country_code_alpha2):
     if not country_code_alpha2:
@@ -101,28 +62,18 @@ def get_flag(country_code_alpha2):
     return ''.join([chr(ord(char.upper()) + OFFSET) for char in country_code_alpha2])
 
 
-def escape_markdown_v2(text):
-    if not text:
-        return ""
-    escape_chars = r"\_*\[\]()~`>#+-=|{}.!<>"
-    return ''.join(['\\' + c if c in escape_chars else c for c in text])
-
-
 def mask_phone_number(number):
     if not number or len(number) <= 8:
-        return escape_markdown_v2(number) if number else ""
-    return escape_markdown_v2(f"{number[:4]}****{number[-4:]}")
+        return number if number else ""
+    return f"{number[:4]}****{number[-4:]}"
 
 
-# ================ File Operations ============
+# ================ File Operations ================
 def save_sms_to_file(otp_code, number):
-    """Save SMS data to file - Only Number and OTP"""
     try:
         entry = f"{number} | {otp_code}\n"
-        
         with open(SMS_FILE, 'a', encoding='utf-8') as f:
             f.write(entry)
-        
         print(f"💾 Saved to file: {number} | {otp_code}")
         return True
     except Exception as e:
@@ -131,10 +82,8 @@ def save_sms_to_file(otp_code, number):
 
 
 def get_all_sms_data():
-    """Read all SMS data from file"""
     if not os.path.exists(SMS_FILE):
         return []
-    
     try:
         with open(SMS_FILE, 'r', encoding='utf-8') as f:
             lines = f.readlines()
@@ -145,7 +94,6 @@ def get_all_sms_data():
 
 
 def delete_sms_file():
-    """Delete the SMS file"""
     try:
         if os.path.exists(SMS_FILE):
             os.remove(SMS_FILE)
@@ -156,131 +104,139 @@ def delete_sms_file():
         return False
 
 
-def format_sms_data_for_list(sms_list):
-    """Format SMS data for Telegram list - Only Number | OTP"""
-    if not sms_list:
-        return "📭 No SMS found in the database."
-    
-    output = []
-    output.append("📊 *SMS Database*")
-    output.append(f"📝 Total: {len(sms_list)} SMS")
-    output.append("")
-    output.append("```")
-    output.append("📱 Number | 🔐 OTP")
-    output.append("-" * 30)
-    
-    for line in sms_list:
-        output.append(line)
-    
-    output.append("```")
-    
-    return "\n".join(output)
-
-
-# ================ Flask Routes for Telegram Bot ================
-@app.route('/', methods=['GET', 'POST'])
-def webhook():
+# ================ Telegram Functions ================
+def send_telegram_message(text):
+    """Send message to Telegram"""
     try:
-        if request.method == 'POST':
-            data = request.get_json()
-            if data and 'message' in data:
-                chat_id = data['message']['chat']['id']
-                text = data['message'].get('text', '')
+        url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
+        data = {
+            "chat_id": TELEGRAM_CHAT_ID,
+            "text": text,
+            "disable_web_page_preview": True
+        }
+        response = requests.post(url, json=data, timeout=10)
+        if response.status_code == 200:
+            print(f"✅ Telegram sent successfully!")
+            return True
+        else:
+            print(f"❌ Telegram error: {response.text}")
+            return False
+    except Exception as e:
+        print(f"❌ Telegram send error: {e}")
+        return False
+
+
+def send_telegram_file(file_path):
+    """Send file to Telegram"""
+    try:
+        url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendDocument"
+        with open(file_path, 'rb') as f:
+            files = {'document': f}
+            data = {'chat_id': TELEGRAM_CHAT_ID, 'caption': '📊 Full SMS Database (Number | OTP)'}
+            response = requests.post(url, files=files, data=data, timeout=30)
+            return response.status_code == 200
+    except Exception as e:
+        print(f"❌ File send error: {e}")
+        return False
+
+
+# ================ Telegram Bot ================
+class TelegramBot:
+    def __init__(self, token, chat_id):
+        self.token = token
+        self.chat_id = chat_id
+        self.last_update_id = 0
+        self.running = True
+        
+    def get_updates(self, offset=None):
+        try:
+            url = f"https://api.telegram.org/bot{self.token}/getUpdates"
+            params = {'timeout': 10, 'allowed_updates': ['message']}
+            if offset:
+                params['offset'] = offset
+            r = requests.get(url, params=params, timeout=15)
+            if r.status_code == 200:
+                return r.json().get('result', [])
+            return []
+        except Exception as e:
+            print(f"Get Updates Error: {e}")
+            return []
+    
+    def process_updates(self):
+        while self.running:
+            try:
+                updates = self.get_updates(self.last_update_id + 1 if self.last_update_id else None)
                 
-                print(f"📨 Received: {text}")
-                
-                if text == '/list':
-                    sms_list = get_all_sms_data()
+                for update in updates:
+                    self.last_update_id = update.get('update_id', 0)
                     
-                    if sms_list:
-                        formatted_list = format_sms_data_for_list(sms_list)
+                    if 'message' in update:
+                        message = update['message']
+                        chat_id = message.get('chat', {}).get('id')
+                        text = message.get('text', '')
                         
-                        url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
-                        data = {
-                            "chat_id": chat_id,
-                            "text": formatted_list,
-                            "parse_mode": "MarkdownV2"
-                        }
-                        requests.post(url, json=data)
+                        if chat_id != self.chat_id:
+                            continue
                         
-                        if os.path.exists(SMS_FILE):
-                            with open(SMS_FILE, 'rb') as f:
-                                files = {'document': f}
-                                data = {'chat_id': chat_id, 'caption': '📊 Full SMS Database (Number | OTP)'}
-                                requests.post(
-                                    f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendDocument",
-                                    files=files,
-                                    data=data
-                                )
-                    else:
-                        send_message(chat_id, "📭 No SMS found in the database.")
-                
-                elif text == '/delete':
-                    if delete_sms_file():
-                        send_message(chat_id, "🗑️ SMS database has been deleted successfully!")
-                    else:
-                        send_message(chat_id, "❌ No SMS file found to delete.")
-                
-                elif text == '/help':
-                    help_text = """
-🤖 *SMS Bot Commands*
+                        print(f"📨 Received: {text}")
+                        
+                        if text == '/list':
+                            sms_list = get_all_sms_data()
+                            if sms_list:
+                                output = "📊 SMS Database\n"
+                                output += f"📝 Total: {len(sms_list)} SMS\n\n"
+                                output += "Number | OTP\n"
+                                output += "-" * 30 + "\n"
+                                for line in sms_list[:50]:
+                                    output += line + "\n"
+                                if len(sms_list) > 50:
+                                    output += f"\n... and {len(sms_list) - 50} more"
+                                
+                                send_telegram_message(output)
+                                
+                                if os.path.exists(SMS_FILE):
+                                    send_telegram_file(SMS_FILE)
+                            else:
+                                send_telegram_message("📭 No SMS found in the database.")
+                        
+                        elif text == '/delete':
+                            if delete_sms_file():
+                                send_telegram_message("🗑️ SMS database deleted successfully!")
+                            else:
+                                send_telegram_message("❌ No SMS file found to delete.")
+                        
+                        elif text == '/help':
+                            help_text = """🤖 SMS Bot Commands
 
 /list - Get all SMS data (Number | OTP)
 /delete - Delete the SMS database
 /help - Show this help message
 
-📊 *File Format:*
-`Number | OTP`
+File Format: Number | OTP
+Example: 255774660006 | 85835
 
-📝 *Example:*
-`255774660006 | 85835`
-
-💾 *File Location:*
-`~/sadi/IrysNode/all_sms_data.txt`
-"""
-                    send_message(chat_id, help_text)
+File Location: ~/sadi/IrysNode/all_sms_data.txt"""
+                            send_telegram_message(help_text)
+                        
+                        elif text.startswith('/'):
+                            send_telegram_message(f"❌ Unknown command: {text}\nUse /help for available commands.")
                 
-                elif text.startswith('/'):
-                    send_message(chat_id, f"❌ Unknown command: {text}\nUse /help for available commands.")
+                time.sleep(2)
+                
+            except Exception as e:
+                print(f"Process Updates Error: {e}")
+                time.sleep(5)
     
-    except Exception as e:
-        print(f"Webhook Error: {e}")
-    
-    return "OK", 200
-
-
-def send_message(chat_id, text):
-    """Send message to Telegram"""
-    try:
-        url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
-        data = {
-            "chat_id": chat_id,
-            "text": text,
-            "parse_mode": "MarkdownV2"
-        }
-        requests.post(url, json=data, timeout=10)
-    except Exception as e:
-        print(f"Send Message Error: {e}")
-
-
-# ================ Flask Server in Separate Thread ================
-class FlaskServer:
-    def __init__(self):
-        self.server = None
-        self.thread = None
-
     def start(self):
-        def run_server():
-            self.server = make_server('0.0.0.0', 5000, app)
-            self.server.serve_forever()
+        def run():
+            print("🤖 Telegram Bot started")
+            self.process_updates()
         
-        self.thread = threading.Thread(target=run_server, daemon=True)
-        self.thread.start()
-        print("🤖 Telegram Bot running on port 5000")
-
+        thread = threading.Thread(target=run, daemon=True)
+        thread.start()
+    
     def stop(self):
-        if self.server:
-            self.server.shutdown()
+        self.running = False
 
 
 # ================ Main App ================
@@ -324,9 +280,11 @@ class SMSCheckerApp:
         self.sms_count = 0
         self.page_loaded = False
         
-        # Start Flask Server in separate thread
-        self.flask_server = FlaskServer()
-        self.flask_server.start()
+        # Start Telegram Bot
+        self.bot = TelegramBot(TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID)
+        self.bot.start()
+        time.sleep(1)
+        send_telegram_message("🤖 SMS Bot Started!\n\nBot is running.\nUse /help for commands.")
 
     def update_status(self, text, color="gray"):
         self.status_label.configure(text=text, text_color=color)
@@ -466,9 +424,9 @@ class SMSCheckerApp:
                 "✅ Login manually in Chrome\n"
                 "✅ Complete the captcha\n"
                 "✅ Click 'Start Checking SMS' after login\n\n"
-                "📱 Telegram Bot is running!\n"
-                "Commands: /list, /delete\n"
-                "📊 Format: Number | OTP")
+                "📱 Bot will send OTPs to Telegram\n"
+                "📊 Format: Number | OTP\n\n"
+                "Commands: /list, /delete, /help")
             
             self.update_status("✅ Login once, session will be saved", "green")
             self.check_sms_button.configure(state="normal")
@@ -503,62 +461,42 @@ class SMSCheckerApp:
         self.stop_button.configure(state="disabled")
         self.check_sms_button.configure(state="normal")
 
-    # ========== Send Message to Telegram ==========
-    def send_to_telegram(self, message):
-        try:
-            url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
-            data = {
-                "chat_id": TELEGRAM_CHAT_ID, 
-                "text": message, 
-                "parse_mode": "MarkdownV2",
-                "disable_web_page_preview": True
-            }
-            r = requests.post(url, json=data, timeout=10)
-            if r.status_code != 200:
-                print(f"Telegram Error: {r.text}")
-                return False
-            return True
-        except Exception as e:
-            print("Telegram Send Error:", e)
-            return False
-
-    # ========== Extract OTP from Message ==========
-    def extract_otp_from_message(self, message):
-        """Extract OTP from message content"""
-        if not message:
+    # ========== Extract OTP from Text ==========
+    def extract_otp_from_text(self, text):
+        """Extract OTP from any text"""
+        if not text:
             return None
         
+        # First, remove "COUNTRY NUMBER" patterns like "TANZANIA 9486"
+        cleaned_text = re.sub(r'\b[A-Z]+\s+\d{4,8}\b', '', text)
+        
+        # Search for OTP patterns
         patterns = [
-            r'(?<!\d)(\d{4,8})(?!\d)',
             r'<#>?\s*(\d{4,8})',
             r'is your (\d{4,8})',
             r'code[:\s]+(\d{4,8})',
             r'otp[:\s]+(\d{4,8})',
-            r'pin[:\s]+(\d{4,8})',
             r'verification[:\s]+(\d{4,8})',
             r'security[:\s]+(\d{4,8})',
             r'Facebook code (\d{4,8})',
             r'Discord code (\d{4,8})',
             r'Google code (\d{4,8})',
+            r'(?<!\d)(\d{4,8})(?!\d)',
         ]
         
         for pattern in patterns:
-            match = re.search(pattern, message, re.IGNORECASE)
+            match = re.search(pattern, cleaned_text, re.IGNORECASE)
             if match:
                 otp = match.group(1)
                 if len(otp) >= 4 and len(otp) <= 8:
-                    return otp
-        
-        numbers = re.findall(r'\b\d{4,8}\b', message)
-        for num in numbers:
-            if not num.startswith(('01', '02', '03', '04', '05', '06', '07', '08', '09', '1', '2', '3')):
-                return num
+                    # Make sure this is not a phone number
+                    if not re.match(r'^2557\d{6}$', otp) and not re.match(r'^01\d{8,10}$', otp):
+                        return otp
         
         return None
 
     # ========== Extract Service from Text ==========
     def extract_service(self, text):
-        """Extract service name from text"""
         if not text:
             return "Other"
         
@@ -570,19 +508,12 @@ class SMSCheckerApp:
             'SNAPCHAT': 'SNAPCHAT', 'TWITTER': 'TWITTER', 'LINKEDIN': 'LINKEDIN',
             'GOOGLE': 'GOOGLE', 'MICROSOFT': 'MICROSOFT', 'AMAZON': 'AMAZON',
             'PAYPAL': 'PAYPAL', 'BINANCE': 'BINANCE', 'COINBASE': 'COINBASE',
-            'VERIFY': 'VERIFY', 'VERIFICATION': 'VERIFICATION', 'SECURITY': 'SECURITY',
-            'AUTH': 'AUTH', 'BANK': 'BANK', 'OTP': 'OTP'
+            'VERIFY': 'VERIFY', 'VERIFICATION': 'VERIFICATION', 'SECURITY': 'SECURITY'
         }
         
         for key, value in service_keywords.items():
             if key in text_upper:
                 return value
-        
-        sid_match = re.search(r'^([A-Z\s]+)\s+\d+', text.upper())
-        if sid_match:
-            service = sid_match.group(1).strip()
-            if service not in ['TANZANIA', 'EGYPT', 'BENIN', 'ZAMBIA', 'PHILIPPINES', 'BANGLADESH']:
-                return service
         
         return "Other"
 
@@ -592,6 +523,13 @@ class SMSCheckerApp:
         if not text:
             return "Unknown"
         
+        # Look for Tanzania phone number format
+        tz_pattern = r'\b2557\d{6}\b'
+        match = re.search(tz_pattern, text)
+        if match:
+            return match.group(0)
+        
+        # General phone number patterns
         patterns = [
             r'\b\d{8,15}\b',
             r'[\+\d\s\-\(\)]{8,15}',
@@ -607,46 +545,43 @@ class SMSCheckerApp:
         
         return "Unknown"
 
-    # ========== Get Country from SID ==========
-    def get_country_from_sid(self, sid):
-        """Get country name and flag from SID"""
-        if not sid:
+    # ========== Get Country from Text ==========
+    def get_country_from_text(self, text):
+        if not text:
             return "Unknown", ""
         
         for country in COUNTRIES:
-            if country in sid.upper():
+            if country in text.upper():
                 return country.title(), COUNTRIES[country]
         
         return "Unknown", ""
 
     # ========== Create Beautiful Message ==========
     def create_beautiful_message(self, otp_code, number, country_name, country_flag, service, full_text, date):
-        """Create a beautifully formatted short message"""
-        
-        service_emoji = SERVICE_EMOJIS.get(service.upper(), SERVICE_EMOJIS['DEFAULT'])
+        service_emoji = SERVICE_EMOJIS.get(service.upper(), '📱')
         
         if not country_flag:
             country_flag = '🌍'
         
-        clean_message = full_text[:150] + ("..." if len(full_text) > 150 else "")
+        clean_text = full_text[:150] + ("..." if len(full_text) > 150 else "")
         
-        formatted = f"""🎯 *{service}* {service_emoji}  •  {country_flag} *{country_name}*
+        formatted = f"""🎯 {service} {service_emoji}  •  {country_flag} {country_name}
 
-🔐 *OTP:* `{otp_code}`
+🔐 OTP: {otp_code}
 
-📱 *Number:* `{mask_phone_number(number)}`
-⏰ *Time:* `{date}`
+📱 Number: {mask_phone_number(number)}
+⏰ Time: {date}
 
-💬 `{clean_message}`
+💬 {clean_text}
 
-💾 *Saved: {number} | {otp_code}*
+💾 Saved: {number} | {otp_code}
 
 ━━━━━━━━━━━━━━
-🔥 [Join Channel](https://t.me/Earnpoint10)"""
+🔥 Join Channel: https://t.me/Earnpoint10"""
         
         return formatted
 
-    # ========== Monitor SMS ==========
+    # ========== Monitor SMS - Full Row Text Method ==========
     def monitor_sms(self):
         while self.monitoring:
             try:
@@ -659,65 +594,54 @@ class SMSCheckerApp:
                 
                 for row in rows:
                     try:
+                        # Get the complete row text
                         row_text = row.text.strip()
                         if not row_text or len(row_text) < 10:
                             continue
                         
-                        print(f"Processing row: {row_text[:100]}...")
+                        print(f"📝 Full Row Text: {row_text[:200]}...")
                         
-                        columns = row.find_elements(By.TAG_NAME, "td")
+                        # Create unique ID for this row
+                        row_id = f"{row_text}_{hash(row_text)}"
                         
-                        if len(columns) >= 4:
-                            sid = columns[0].text.strip() if len(columns) > 0 else ""
-                            paid = columns[1].text.strip() if len(columns) > 1 else ""
-                            limit = columns[2].text.strip() if len(columns) > 2 else ""
-                            message = columns[3].text.strip() if len(columns) > 3 else ""
+                        if row_id in self.prev_sms:
+                            print(f"⏭️ Row already processed")
+                            continue
+                        
+                        # Extract OTP from the full row text
+                        otp_code = self.extract_otp_from_text(row_text)
+                        
+                        if otp_code:
+                            print(f"✅ New OTP Found: {otp_code}")
                             
-                            print(f"   SID: {sid}")
-                            print(f"   Message: {message}")
+                            self.prev_sms.add(row_id)
+                            self.sms_count += 1
                             
-                            otp_code = self.extract_otp_from_message(message)
+                            # Extract other details from row text
+                            service = self.extract_service(row_text)
+                            number = self.extract_number(row_text)
+                            country_name, country_flag = self.get_country_from_text(row_text)
                             
-                            if not otp_code:
-                                otp_code = self.extract_otp_from_message(sid)
+                            date = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
                             
-                            if otp_code:
-                                sms_id = f"{sid}_{message}_{hash(row_text)}"
-                                
-                                if sms_id in self.prev_sms:
-                                    print(f"⏭️ SMS already processed")
-                                    continue
-                                
-                                print(f"✅ New OTP Found: {otp_code}")
-                                print(f"   Message: {message[:100]}...")
-                                
-                                self.prev_sms.add(sms_id)
-                                self.sms_count += 1
-                                
-                                service = self.extract_service(f"{sid} {message}")
-                                number = self.extract_number(f"{sid} {message}")
-                                country_name, country_flag = self.get_country_from_sid(sid)
-                                
-                                date = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-                                
-                                print(f"✅ Sending: {otp_code} | Service: {service} | Country: {country_name}")
-                                self.root.after(0, self.update_status, f"📱 New SMS! OTP: {otp_code}", "green")
-                                self.root.after(0, self.update_counter)
-                                self.root.after(0, self.update_debug, f"✅ OTP: {otp_code} | {service}")
-                                
-                                # Save to file (Only Number | OTP)
-                                save_sms_to_file(otp_code, number)
-                                
-                                # Send to Telegram
-                                formatted_message = self.create_beautiful_message(
-                                    otp_code, number, country_name, country_flag, service, f"{sid} {message}", date
-                                )
-                                
-                                if self.send_to_telegram(formatted_message):
-                                    print(f"📤 Sent to Telegram: {otp_code}")
-                                else:
-                                    print(f"❌ Failed to send to Telegram")
+                            print(f"📤 Sending: {otp_code} | Service: {service} | Number: {number} | Country: {country_name}")
                             
+                            self.root.after(0, self.update_status, f"📱 New SMS! OTP: {otp_code}", "green")
+                            self.root.after(0, self.update_counter)
+                            self.root.after(0, self.update_debug, f"✅ OTP: {otp_code} | {service}")
+                            
+                            # Save to file
+                            save_sms_to_file(otp_code, number)
+                            
+                            # Create and send message
+                            formatted_message = self.create_beautiful_message(
+                                otp_code, number, country_name, country_flag, service, row_text, date
+                            )
+                            
+                            send_telegram_message(formatted_message)
+                        else:
+                            print(f"⏭️ No OTP found in row")
+                        
                     except StaleElementReferenceException:
                         continue
                     except Exception as e:
@@ -739,12 +663,11 @@ class SMSCheckerApp:
         self.monitoring = False
         if self.driver:
             self.driver.quit()
-        if self.flask_server:
-            self.flask_server.stop()
+        if self.bot:
+            self.bot.stop()
         self.root.destroy()
 
 
-# ================ Launcher ================
 if __name__ == "__main__":
     root = ctk.CTk()
     app = SMSCheckerApp(root)
